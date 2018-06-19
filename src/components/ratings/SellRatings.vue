@@ -1,12 +1,12 @@
 <template>
-  <div class="SellHeader">
-    我是header!
+  <div class="SellRatings">
+    我是SellRatings!
   </div>
 </template>
 
 <script type="text/ecmascript-6">
 export default {
-  name: 'SellHeader'
+  name: 'SellRatings'
 };
 </script>
 

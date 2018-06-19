@@ -37,8 +37,9 @@ module.exports = {
       'vue$': 'vue/dist/vue.esm.js',
       '@': resolve('src'),
       // 'src': path.resolve(__dirname, '../src'),
-      // 'common': path.resolve(__dirname, '../src/common'),
-      // 'components': path.resolve(__dirname, '../src/components')
+      'common': path.resolve(__dirname, '../src/common'),
+      // 引用的时候可以直接使用components,不用考虑是在哪里调用
+      'components': path.resolve(__dirname, '../src/components')
     }
   },
   module: {
