@@ -2,7 +2,10 @@
   <div class="goods">
     <div class="menu-wrapper" ref="menuWrapper">
       <ul>
-        <li v-for="(item, index) in goods" :key="index" class="menu-item">
+        <li v-for="(item, index) in goods" :key="index" class="menu-item"
+          :class="{'current':currentIndex === index}"
+          @click="selectMenu(index, $event)"
+          ref="menuList">
           <span class="text border-1px">
             <span v-show="item.type>0" class="icon" :class="classMap[item.type]"></span>{{item.name}}
           </span>
@@ -11,7 +14,7 @@
     </div>
     <div class="foods-wrapper" ref="foodsWrapper">
       <ul>
-        <li class="food-list" v-for="(item, index) in goods" :key="index">
+        <li class="food-list" v-for="(item, index) in goods" :key="index" ref="foodList">
           <h1 class="title">{{item.name}}</h1>
           <ul>
             <li class="food-item" v-for="(food, index) in item.foods" :key="index">
@@ -27,18 +30,24 @@
                 <div class="price">
                   <span class="now">￥{{food.price}}</span><span class="old" v-show="food.oldPrice">￥{{food.oldPrice}}</span>
                 </div>
+                <div class="cartcontrol-wrapper">
+                  <cart-control :food="food"></cart-control>
+                </div>
               </div>
             </li>
           </ul>
         </li>
       </ul>
     </div>
+    <shop-cart :delivery-price="seller.deliveryPrice"
+      :min-price="seller.minPrice" :selectFoods="selectFoods"></shop-cart>
   </div>
 </template>
 
 <script type="text/ecmascript-6">
-
 import BScroll from 'better-scroll';
+import ShopCart from 'components/shopcart/ShopCart';
+import CartControl from 'components/cartcontrol/CartControl';
 
 const ERR_OK = 0;
 
@@ -50,13 +59,77 @@ export default {
   },
   data() {
     return {
-      goods: []
+      goods: [],
+      // 每一个食物模块所占的高度
+      listHeight: [],
+      scrollY: 0
     };
   },
+  computed: {
+    currentIndex() {
+      for (let i = 0; i < this.listHeight.length; i++) {
+        let height1 = this.listHeight[i];
+        let height2 = this.listHeight[i + 1];
+        if (!height2 || (this.scrollY >= height1 && this.scrollY < height2)) {
+          this._followScroll(i);
+          return i;
+        }
+      }
+      return 0;
+    },
+    selectFoods() {
+      let foods = [];
+      this.goods.forEach((good) => {
+        good.foods.forEach((food) => {
+          if (food.count) {
+            foods.push(food);
+          }
+        });
+      });
+      return foods;
+    }
+  },
   methods: {
+    selectMenu(index, event) {
+      if (!event._constructed) {
+        return;
+      }
+      let foodList = this.$refs.foodList;
+      let el = foodList[index];
+      this.foodsScroll.scrollToElement(el, 300);
+    },
     _initScroll() {
-      this.menuScroll = new BScroll(this.$refs.menuWrapper, {});
-      this.foodsScroll = new BScroll(this.$refs.foodsWrapper, {});
+      this.menuScroll = new BScroll(this.$refs.menuWrapper, {
+        click: true
+      });
+      this.foodsScroll = new BScroll(this.$refs.foodsWrapper, {
+        click: true,
+        probeType: 3
+      });
+      this.foodsScroll.on('scroll', (pos) => {
+        // console.log('-- post.y --', pos.y);
+        // 判断滑动方向
+        if (pos.y <= 0) {
+          this.scrollY = Math.abs(Math.round(pos.y));
+        }
+      });
+    },
+    // 计算高度
+    _calculateHeight() {
+      // 获取DOM元素li(标题及标题下面的食品)
+      let foodList = this.$refs.foodList;
+      let height = 0;
+      this.listHeight.push(height);
+      for (let i = 0; i < foodList.length; i++) {
+        let item = foodList[i];
+        height += item.clientHeight;
+        this.listHeight.push(height);
+      }
+    },
+    _followScroll(index) {
+      let menuList = this.$refs.menuList;
+      let el = menuList[index];
+      this.menuScroll.scrollToElement(el, 300, 0, -100);
     }
   },
   created() {
@@ -68,10 +141,12 @@ export default {
         this.goods = res.data;
         this.$nextTick(() => {
           this._initScroll();
+          this._calculateHeight();
         });
       }
     });
-  }
+  },
+  components: { ShopCart, CartControl }
 };
 </script>
 
@@ -94,6 +169,14 @@ export default {
         height 54px
         padding 0 12px
         line-height 14px
+        &.current
+          position relative
+          z-index 10
+          margin-top -1px
+          background #fff
+          font-weight 700
+          .text
+            border-none()
         .icon
           display inline-block
           vertical-align top
@@ -168,4 +251,8 @@ export default {
               text-decoration line-through
               font-size 10px
               color rgb(147,153,159)
+          .cartcontrol-wrapper
+            position absolute
+            right 0
+            bottom 12px
 </style>
